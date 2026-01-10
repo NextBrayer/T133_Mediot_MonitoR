@@ -1,0 +1,1 @@
+arm-linux-gnueabihf-gcc -mcpu=cortex-a7 -mfloat-abi=hard -static -O2 -o uart_mux uart_mux.c -lutil
