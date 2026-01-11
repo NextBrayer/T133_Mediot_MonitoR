@@ -1,0 +1,71 @@
+#!/bin/sh
+
+
+# Start all init scripts in /etc/init.d
+# executing them in numerical order.
+#
+insmod /lib/modules/`uname -r`/rtk_btusb.ko
+insmod /lib/modules/`uname -r`/8723du.ko
+for i in /etc/init.d/S??* ;do
+
+     # Ignore dangling symlinks (if any).
+     [ ! -f "$i" ] && continue
+
+     case "$i" in
+	*.sh)
+	    # Source shell script for speed.
+	    (
+		trap - INT QUIT TSTP
+		set start
+		. $i
+	    )
+	    ;;
+	*)
+	    # No sh extension, so fork subprocess.
+	    $i start
+	    ;;
+    esac
+done
+
+echo /sbin/mdev > /proc/sys/kernel/hotplug
+mdev -s
+
+insmod /lib/modules/`uname -r`/8188fu.ko
+
+ifconfig eth0 up
+ifconfig eth0 192.168.0.20  netmask 255.255.255.0
+route add default gw 192.168.0.20
+#dhcpcd 1>/dev/null 2>/dev/null &
+#udhcpd /etc/udhcpd.conf
+
+mount -t debugfs none /sys/kernel/debug  
+/etc/adb_conf.sh start &
+
+tinymix set "ADC2 Input MIC2 Boost Switch" 1 > /dev/null
+tinymix set "ADC3 Input MIC3 Boost Switch" 1 > /dev/null
+tinymix set "HpSpeaker Switch" 1 > /dev/null
+tinymix set "Headphone Switch" 1 > /dev/null
+tinymix set "LINEOUT Switch" 1 > /dev/null
+
+if [ ! -f "/usr/lib/libcrypto.so.1.0.0" ]; then
+    ln -s /usr/lib/libcrypto.so.1.1 /usr/lib/libcrypto.so.1.0.0
+fi
+
+if [ ! -f "/usr/lib/libssl.so.1.0.0" ]; then
+    ln -s /usr/lib/libssl.so.1.1 /usr/lib/libssl.so.1.0.0
+fi
+
+ln -s /dev/ttyS0 /dev/ttyAS0
+#ln -s /dev/ttyS1 /dev/ttyAS1
+ln -s /dev/ttyS2 /dev/ttyAS2
+ln -s /dev/ttyS3 /dev/ttyAS3
+ln -s /dev/ttyS4 /dev/ttyAS4
+ln -s /dev/ttyS5 /dev/ttyAS5
+
+mkdir /dev/by-name/ && ln -s /dev/mtdblock5 /dev/by-name/boot-resource
+. /etc/qtenv.sh 
+/usr/bin/jyxboarder-assistant-server &
+echo 3 > /proc/sysrq-trigger 
+. /etc/tslib.sh
+#cd /mnt/UDISK && ./m1000
+

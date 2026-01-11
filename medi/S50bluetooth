@@ -1,0 +1,91 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          bluetooth
+# Required-Start:    $local_fs $network $syslog
+# Required-Stop:     $local_fs $network $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Bluetooth service
+# Description:       Start, stop, and restart the Bluetooth service and configure the adapter.
+### END INIT INFO
+
+# Path to bluetoothd
+BLUETOOTHD="/usr/libexec/bluetooth/bluetoothd"
+
+# Path to bluetoothctl
+BLUETOOTHCTL="/usr/bin/bluetoothctl"
+
+# Path to pulseaudio
+PULSEAUDIO="/usr/bin/pulseaudio"
+
+# Bluetooth adapter name (e.g., hci0)
+ADAPTER="hci0"
+
+# Path to bluetoothctl
+BLUETOOTHCTL="/usr/bin/bluetoothctl"
+
+# Path to hciconfig
+HCICONFIG="/usr/bin/hciconfig"
+
+start() {
+    echo "Starting Bluetooth service..."
+    # Start bluetoothd in compatibility mode
+    $BLUETOOTHD --compat &
+
+    # Start PulseAudio
+    $PULSEAUDIO --start
+
+    # Power on the Bluetooth adapter
+    $HCICONFIG $ADAPTER up
+
+    # Enable Bluetooth
+    $BLUETOOTHCTL power on
+
+    # Set Bluetooth discoverable (optional)
+    $BLUETOOTHCTL discoverable on
+
+    # Set pairing agent
+    $BLUETOOTHCTL agent on
+    $BLUETOOTHCTL default-agent
+
+    echo "Bluetooth service started."
+}
+
+stop() {
+    echo "Stopping Bluetooth service..."
+
+    # Bring down the Bluetooth adapter
+    $HCICONFIG $ADAPTER down
+
+    # Stop PulseAudio
+    $PULSEAUDIO --kill
+
+    # Stop bluetoothd
+    killall bluetoothd
+
+    echo "Bluetooth service stopped."
+}
+
+restart() {
+    stop
+	sleep 1
+    start
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    *)
+        echo "Usage: /etc/init.d/bluetooth {start|stop|restart}"
+        exit 1
+        ;;
+esac
+
+exit 0
